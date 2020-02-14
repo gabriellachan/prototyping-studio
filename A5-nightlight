@@ -1,0 +1,216 @@
+// Gaby and Nimmi's Night Light Project
+
+// Source + Inspiration Code
+//   Adafruit Neopixel Library examples (simple and strandtest_wheel)
+//   Turning Neopixels off - https://codebender.cc/sketch:46265#Set%20all%20NeoPixel%20one%20color.ino
+//   Circuit mapping - https://circuito.io
+//   Force Senstive Resistor - https://learn.adafruit.com/force-sensitive-resistor-fsr/using-an-fsr
+
+
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+ #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#endif
+
+// Which pin on the Arduino is connected to the NeoPixels?
+#define PIN        2 // On Trinket or Gemma, suggest changing this to 1
+
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS 12 // Popular NeoPixel ring size
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+#define DELAYVAL 250
+
+
+int fsrPin = 0;     // the FSR and 10K pulldown are connected to a0
+int fsrReading;     // the analog reading from the FSR resistor divider
+
+int fsrPin2 = 1;
+int fsrReading2;
+
+int ledright = 3;  
+int ledleft = 5; // the PWM pin the LED is attached to
+int brightness = 0;    // how bright the LED is
+int fadeAmount = 15;    // how many points to fade the LED by
+
+int brightness2 = 0;    // how bright the LED is
+int fadeAmount2 = 15;    // how many points to fade the LED by
+
+int pResistor = 2;
+int value;
+
+bool lightoff = false;
+
+void setup(void) {
+  Serial.begin(9600);   
+
+  #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
+  clock_prescale_set(clock_div_1);
+  #endif
+  // END of Trinket-specific code.
+
+  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+  pixels.setBrightness(200);
+
+  pinMode(ledright, OUTPUT);
+  pinMode(ledleft, OUTPUT);
+
+}
+ 
+void loop(void) {
+  fsrReading = analogRead(fsrPin);  
+  fsrReading2 = analogRead(fsrPin2);
+
+  Serial.print("Right reading = ");
+  Serial.println(fsrReading);     // raw analog reading
+
+  Serial.print("Left reading = ");
+  Serial.println(fsrReading2);     // the raw analog reading
+
+
+  uint32_t low = pixels.Color(0, 0, 0); 
+ 
+  value = analogRead(pResistor);
+  Serial.println(value);
+  //You can change value "25"
+
+  if (lightoff == false && value < 25) {
+      for(int i=0; i<2; i++) { // For each pixel...
+
+        pixels.setPixelColor(i, pixels.Color(255, 0, 0));
+    
+        pixels.show();   // Send the updated pixel colors to the hardware.
+    
+        delay(DELAYVAL);
+    }
+
+
+      for(int i=2; i<4; i++) { // For each pixel...
+        
+        pixels.setPixelColor(i, pixels.Color(201, 210, 0));       
+    
+        pixels.show();   // Send the updated pixel colors to the hardware.
+    
+        delay(DELAYVAL);
+        // Pause before next pass through loop
+      }
+    
+      for(int i=4; i<6; i++) { // For each pixel...
+       
+        pixels.setPixelColor(i, pixels.Color(0, 255, 0));
+    
+        pixels.show();   // Send the updated pixel colors to the hardware.
+    
+        delay(DELAYVAL);
+        // Pause before next pass through loop
+      }
+      
+      for(int i=6; i<8; i++) { // For each pixel...
+
+        pixels.setPixelColor(i, pixels.Color(0, 128, 255));
+    
+        pixels.show();   // Send the updated pixel colors to the hardware.
+    
+        delay(DELAYVAL);
+        // Pause before next pass through loop
+      }
+    
+      for(int i=8; i<10; i++) { // For each pixel...
+    
+        pixels.setPixelColor(i, pixels.Color(255, 0, 127));
+    
+        pixels.show();   // Send the updated pixel colors to the hardware.
+    
+        delay(DELAYVAL);
+        // Pause before next pass through loop
+        }
+
+        lightoff = true;
+      }
+
+  
+  // We'll have a few threshholds, qualitatively determined
+  if (fsrReading > 200 && fsrReading2 > 200) {
+     pixels.clear(); // Set all pixel colors to 'off'
+  
+    rainbow(20);
+    brightness = 0;
+    analogWrite(ledright, brightness);
+    analogWrite(ledleft, brightness2);
+  }
+
+
+  else if (fsrReading > 300 && fsrReading2 < 10) {
+     analogWrite(ledright, brightness);
+
+    // change the brightness for next time through the loop:
+     brightness = brightness + fadeAmount;
+
+     // reverse the direction of the fading at the ends of the fade:
+      if (brightness <= 0 || brightness >= 255) {
+       fadeAmount = -fadeAmount;
+      }
+    // wait for 30 milliseconds to see the dimming effect
+  delay(30);
+  }
+
+    
+  else if (fsrReading2 > 300 && fsrReading < 10) {
+     analogWrite(ledleft, brightness2);
+
+    // change the brightness for next time through the loop:
+     brightness2 = brightness2 + fadeAmount2;
+
+     // reverse the direction of the fading at the ends of the fade:
+      if (brightness2 <= 0 || brightness2 >= 255) {
+       fadeAmount2 = -fadeAmount2;
+      }
+    // wait for 30 milliseconds to see the dimming effect
+  delay(30);
+  }
+
+  else {
+
+    for( int i = 0; i<pixels.numPixels(); i++){
+        pixels.setPixelColor(i, low);
+        pixels.show();
+        }  
+        
+    analogWrite(ledright, brightness);
+    brightness = 0;
+    
+    analogWrite(ledleft, brightness2);
+    brightness2 = 0;
+
+    }
+   
+}
+
+
+void rainbow(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256; j++) {
+    for(i=0; i<pixels.numPixels(); i++) {
+      pixels.setPixelColor(i, Wheel((i+j) & 255));
+    }
+    pixels.show();
+    delay(wait);
+  }
+}
+
+
+
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
